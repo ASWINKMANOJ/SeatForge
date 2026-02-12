@@ -295,5 +295,3 @@ This project demonstrates that:
 * Measure first, optimize later
 
 ---
-
-Just tell me what you want next.
