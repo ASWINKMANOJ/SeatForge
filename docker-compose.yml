@@ -1,16 +1,38 @@
 services:
 
-  seat-service:
-    image: seat-service:latest
-    expose:
-      - "8080"
+  # seat-service:
+  #   image: seat-service:latest
+  #   expose:
+  #     - "8080"
 
-  nginx:
-    image: nginx:alpine
-    container_name: nginx-lb
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: nginx-lb
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - seat-service
+  postgres:
+    image: postgres:alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-mydb}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "80:80"
+      - "5432:5432"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - seat-service
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
