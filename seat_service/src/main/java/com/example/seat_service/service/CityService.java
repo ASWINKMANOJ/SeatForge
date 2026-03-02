@@ -31,7 +31,7 @@ public class CityService {
 
     public CityResponse getCityById(Long id) {
         City city = cityRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("No City with that id is saved in the database"));
+                .orElseThrow(() -> new EntityNotFoundException("No City with that id:" + id + " is saved in the database "));
         return new CityResponse(city);
     }
 
@@ -48,7 +48,7 @@ public class CityService {
 
     public CityResponse updateCity(Long id, CityRequest cityRequest) {
         City existingCity = cityRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("No City with that id is saved in the database"));
+                .orElseThrow(() -> new EntityNotFoundException("No City with that id" + id + " is saved in the database"));
         existingCity.setName(cityRequest.getName());
         existingCity.setState(cityRequest.getState());
         existingCity.setCountry(cityRequest.getCountry());
@@ -57,7 +57,7 @@ public class CityService {
 
     public void deleteCity(Long id) {
         City existingCity = cityRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("No City with that id is saved in the database"));
+                .orElseThrow(() -> new EntityNotFoundException("No City with that id" + id + " is saved in the database"));
         cityRepository.delete(existingCity);
     }
 }
