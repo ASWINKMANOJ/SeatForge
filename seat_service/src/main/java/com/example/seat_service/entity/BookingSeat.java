@@ -8,9 +8,13 @@ import java.math.BigDecimal;
 @Entity
 @Table(
         name = "booking_seat",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_booking_seat",
+                        columnNames = {"booking_id", "seat_id"}
+                )
+        },
         indexes = {
-                @Index(name = "idx_bs_booking", columnList = "booking_id"),
-                @Index(name = "idx_bs_seat", columnList = "seat_id"),
                 @Index(name = "idx_bs_booking_seat", columnList = "booking_id,seat_id")
         }
 )
@@ -27,11 +31,11 @@ public class BookingSeat {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "booking_id")
+    @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "seat_id")
+    @JoinColumn(name = "seat_id", nullable = false)
     private Seat seat;
 
     private BigDecimal price;

@@ -5,15 +5,14 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Table(
         name = "booking",
         indexes = {
                 @Index(name = "idx_booking_user", columnList = "user_id"),
-                @Index(name = "idx_booking_event", columnList = "event_id"),
                 @Index(name = "idx_booking_code", columnList = "booking_code", unique = true),
-                @Index(name = "idx_booking_status", columnList = "status"),
                 @Index(name = "idx_booking_user_event", columnList = "user_id,event_id")
         }
 )
@@ -29,11 +28,11 @@ public class Booking {
     )
     private Long id;
 
-    @Column(name = "booked_by_user_id")
-    private String user;
+    @Column(name = "user_id", nullable = false)
+    private String userId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "event_id")
+    @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
     @Column(nullable = false, unique = true)
@@ -42,6 +41,7 @@ public class Booking {
     private BigDecimal totalPrice;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private BookingStatus status;
 
     private Instant bookedAt;
@@ -49,4 +49,7 @@ public class Booking {
     private Instant cancelledAt;
 
     private String paymentId;
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<BookingSeat> bookedSeats;
 }

@@ -1,9 +1,11 @@
 package com.example.seat_service.controllers;
 
 
+import com.example.seat_service.dto.EventSeatStatus.EventSeatStatusResponse;
 import com.example.seat_service.dto.event.EventRequest;
 import com.example.seat_service.dto.event.EventResponse;
 import com.example.seat_service.entity.EventStatus;
+import com.example.seat_service.entity.SeatBookingStatus;
 import com.example.seat_service.service.EventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -65,6 +67,18 @@ public class EventController {
     }
 
     // ─── USER ENDPOINTS ─────────────────────────────────────────────────────────
+
+    @GetMapping("/{eventId}/seats")
+    public ResponseEntity<List<EventSeatStatusResponse>> getAllSeats(
+            @PathVariable Long eventId) {
+        return ResponseEntity.ok(eventService.findAllSeatsByEventId(eventId));
+    }
+
+    @GetMapping("/{eventId}/seats/available")
+    public ResponseEntity<List<EventSeatStatusResponse>> getAvailableSeats(
+            @PathVariable Long eventId) {
+        return ResponseEntity.ok(eventService.findSeatsByEventIdAndStatus(eventId, SeatBookingStatus.AVAILABLE));
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
