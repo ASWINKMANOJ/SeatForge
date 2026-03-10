@@ -1,6 +1,6 @@
 package com.example.seat_service.service.mapper;
 
-import com.example.seat_service.dto.EventSeatStatus.EventSeatStatusResponse;
+import com.example.seat_service.dto.eventSeatStatus.EventSeatStatusResponse;
 import com.example.seat_service.entity.EventSeatStatus;
 import com.example.seat_service.entity.Seat;
 import org.springframework.stereotype.Component;

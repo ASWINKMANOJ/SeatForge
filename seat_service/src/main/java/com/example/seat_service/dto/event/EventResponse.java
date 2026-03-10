@@ -22,7 +22,6 @@ public class EventResponse {
     private Instant bookingOpenAt;
     private Instant bookingCloseAt;
     private EventStatus eventStatus;
-    private Instant createdAt;
     private Instant updatedAt;
     private Long availableSeats;
 }

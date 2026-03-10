@@ -1,6 +1,6 @@
 package com.example.seat_service.service;
 
-import com.example.seat_service.dto.EventSeatStatus.EventSeatStatusResponse;
+import com.example.seat_service.dto.eventSeatStatus.EventSeatStatusResponse;
 import com.example.seat_service.dto.event.EventRequest;
 import com.example.seat_service.dto.event.EventResponse;
 import com.example.seat_service.entity.*;

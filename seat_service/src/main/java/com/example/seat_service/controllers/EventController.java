@@ -1,7 +1,7 @@
 package com.example.seat_service.controllers;
 
 
-import com.example.seat_service.dto.EventSeatStatus.EventSeatStatusResponse;
+import com.example.seat_service.dto.eventSeatStatus.EventSeatStatusResponse;
 import com.example.seat_service.dto.event.EventRequest;
 import com.example.seat_service.dto.event.EventResponse;
 import com.example.seat_service.entity.EventStatus;
@@ -13,9 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/events")

@@ -1,6 +1,5 @@
-package com.example.seat_service.dto.EventSeatStatus;
+package com.example.seat_service.dto.bookingSeat;
 
-import com.example.seat_service.entity.SeatBookingStatus;
 import com.example.seat_service.entity.SeatType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,13 +12,12 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EventSeatStatusResponse {
+public class BookingSeatResponse {
     private Long id;
     private Long seatId;
     private String section;
     private String rowLabel;
     private String seatLabel;
     private SeatType seatType;
-    private SeatBookingStatus status;
     private BigDecimal price;
 }
