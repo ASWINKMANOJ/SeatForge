@@ -23,5 +23,6 @@ public class EventResponse {
     private Instant bookingCloseAt;
     private EventStatus eventStatus;
     private Instant updatedAt;
+    private Instant createdAt;
     private Long availableSeats;
 }
