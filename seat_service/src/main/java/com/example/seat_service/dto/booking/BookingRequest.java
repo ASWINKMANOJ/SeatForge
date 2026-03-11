@@ -1,5 +1,8 @@
 package com.example.seat_service.dto.booking;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,7 +13,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BookingRequest {
+    @NotNull(message = "Event id is required")
     private Long eventId;
+    @NotEmpty(message = "Seat id(s) is required")
     private List<Long> seatIds;
+    @NotBlank(message = "Payment id is required")
     private String paymentId;   // dummy payment id
 }

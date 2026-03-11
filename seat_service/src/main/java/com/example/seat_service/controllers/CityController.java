@@ -3,23 +3,20 @@ package com.example.seat_service.controllers;
 import com.example.seat_service.dto.city.CityRequest;
 import com.example.seat_service.dto.city.CityResponse;
 import com.example.seat_service.service.CityService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/cities")
+@RequiredArgsConstructor
 public class CityController {
 
     private final CityService cityService;
-
-    public CityController(CityService cityService) {
-        this.cityService = cityService;
-    }
 
     @GetMapping
     public ResponseEntity<List<CityResponse>> getAllCities() {
@@ -38,13 +35,13 @@ public class CityController {
 
     @PostMapping
 //    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CityResponse> createCity(@RequestBody CityRequest cityRequest) {
+    public ResponseEntity<CityResponse> createCity(@Valid @RequestBody CityRequest cityRequest) {
         return ResponseEntity.status(HttpStatus.CREATED).body(cityService.createCity(cityRequest));
     }
 
     @PutMapping("/{id}")
 //    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CityResponse> updateCity(@PathVariable Long id, @RequestBody CityRequest cityRequest) {
+    public ResponseEntity<CityResponse> updateCity(@PathVariable Long id, @Valid @RequestBody CityRequest cityRequest) {
         return ResponseEntity.ok(cityService.updateCity(id, cityRequest));
     }
 

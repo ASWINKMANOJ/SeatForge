@@ -7,6 +7,7 @@ import com.example.seat_service.dto.event.EventResponse;
 import com.example.seat_service.entity.EventStatus;
 import com.example.seat_service.entity.SeatBookingStatus;
 import com.example.seat_service.service.EventService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,13 +27,13 @@ public class EventController {
 
     @PostMapping
     // @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<EventResponse> createEvent(@RequestBody EventRequest request) {
+    public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(eventService.createEvent(request));
     }
 
     @PutMapping("/{id}")
     // @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<EventResponse> updateEvent(@PathVariable Long id, @RequestBody EventRequest request) {
+    public ResponseEntity<EventResponse> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request) {
         return ResponseEntity.ok(eventService.updateEvent(id, request));
     }
 

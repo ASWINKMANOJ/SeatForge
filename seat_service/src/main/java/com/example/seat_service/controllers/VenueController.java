@@ -1,10 +1,11 @@
 package com.example.seat_service.controllers;
 
 
-import com.example.seat_service.dto.city.CityResponse;
 import com.example.seat_service.dto.venue.VenueRequest;
 import com.example.seat_service.dto.venue.VenueResponse;
 import com.example.seat_service.service.VenueService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,12 +14,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/venues")
+@RequiredArgsConstructor
 public class VenueController {
-    private final VenueService venueService;
 
-    public VenueController(VenueService venueService) {
-        this.venueService = venueService;
-    }
+    private final VenueService venueService;
 
     @GetMapping
     public ResponseEntity<List<VenueResponse>> getVenues(
@@ -41,16 +40,19 @@ public class VenueController {
     }
 
     @PostMapping
-    public ResponseEntity<VenueResponse> createVenue(@RequestBody VenueRequest request) {
+//    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<VenueResponse> createVenue(@Valid @RequestBody VenueRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(venueService.createVenue(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<VenueResponse> updateVenue(@PathVariable Long id, @RequestBody VenueRequest request) {
+//    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<VenueResponse> updateVenue(@PathVariable Long id, @Valid @RequestBody VenueRequest request) {
         return ResponseEntity.ok(venueService.updateVenue(id, request));
     }
 
     @DeleteMapping("/{id}")
+//    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteVenue(@PathVariable Long id) {
         venueService.deleteVenue(id);
         return ResponseEntity.noContent().build();

@@ -3,6 +3,7 @@ package com.example.seat_service.controllers;
 import com.example.seat_service.dto.seat.SeatRequest;
 import com.example.seat_service.dto.seat.SeatResponse;
 import com.example.seat_service.service.SeatService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,12 +29,14 @@ public class SeatController {
     }
 
     @PostMapping
-    public ResponseEntity<SeatResponse> createSeat(@RequestBody SeatRequest seatRequest) {
+    // @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SeatResponse> createSeat(@Valid @RequestBody SeatRequest seatRequest) {
         return ResponseEntity.status(HttpStatus.CREATED).body(seatService.createSeat(seatRequest));
     }
 
     @PutMapping("/{seatId}")
-    public ResponseEntity<SeatResponse> updateSeat(@PathVariable Long seatId, @RequestBody SeatRequest seatRequest) {
+    // @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SeatResponse> updateSeat(@PathVariable Long seatId, @Valid @RequestBody SeatRequest seatRequest) {
         return ResponseEntity.ok(seatService.updateSeat(seatId, seatRequest));
     }
 
