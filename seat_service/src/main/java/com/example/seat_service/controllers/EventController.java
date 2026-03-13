@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -26,38 +27,38 @@ public class EventController {
     // ─── ADMIN ENDPOINTS ────────────────────────────────────────────────────────
 
     @PostMapping
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('admin:events')")
     public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(eventService.createEvent(request));
     }
 
     @PutMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('admin:events')")
     public ResponseEntity<EventResponse> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request) {
         return ResponseEntity.ok(eventService.updateEvent(id, request));
     }
 
     @DeleteMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('admin:events')")
     public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
         eventService.deleteEvent(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/admin/all")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('admin:all')")
     public ResponseEntity<List<EventResponse>> getAllEvents() {
         return ResponseEntity.ok(eventService.findAllByStatus(null));
     }
 
     @GetMapping("/admin/status")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('admin:all')")
     public ResponseEntity<List<EventResponse>> getByAnyStatus(@RequestParam EventStatus status) {
         return ResponseEntity.ok(eventService.findAllByStatus(status));
     }
 
     @GetMapping("/admin/venue/{venueId}/range")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('admin:all')")
     public ResponseEntity<List<EventResponse>> getByVenueAndRange(
             @PathVariable Long venueId,
             @RequestParam Instant from,
@@ -96,7 +97,6 @@ public class EventController {
 
     @GetMapping("/status")
     public ResponseEntity<List<EventResponse>> getByUserVisibleStatus(@RequestParam EventStatus status) {
-        // users can only see ACTIVE and SOLD_OUT events
         if (status != EventStatus.ACTIVE && status != EventStatus.SOLD_OUT) {
             throw new IllegalArgumentException("Invalid status filter: " + status);
         }

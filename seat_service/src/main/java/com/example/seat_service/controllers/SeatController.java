@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,18 +30,19 @@ public class SeatController {
     }
 
     @PostMapping
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('admin:seats')")
     public ResponseEntity<SeatResponse> createSeat(@Valid @RequestBody SeatRequest seatRequest) {
         return ResponseEntity.status(HttpStatus.CREATED).body(seatService.createSeat(seatRequest));
     }
 
     @PutMapping("/{seatId}")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('admin:seats')")
     public ResponseEntity<SeatResponse> updateSeat(@PathVariable Long seatId, @Valid @RequestBody SeatRequest seatRequest) {
         return ResponseEntity.ok(seatService.updateSeat(seatId, seatRequest));
     }
 
     @DeleteMapping("/{seatId}")
+    @PreAuthorize("hasAuthority('admin:seats')")
     public ResponseEntity<Void> deleteSeat(@PathVariable Long seatId) {
         seatService.deleteSeat(seatId);
         return ResponseEntity.noContent().build();

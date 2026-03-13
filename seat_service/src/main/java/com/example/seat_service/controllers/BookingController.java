@@ -9,6 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,8 +27,8 @@ public class BookingController {
     @PostMapping("/lock")
     public ResponseEntity<LockResponse> lockSeats(
             @Valid @RequestBody LockRequest request,
-            @RequestHeader("X-User-Id") String userId) {
-        return ResponseEntity.ok(bookingService.lockSeats(request, userId));
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(bookingService.lockSeats(request, jwt.getSubject()));
     }
 
     // UNLOCK SEATS
@@ -41,17 +43,17 @@ public class BookingController {
     @PostMapping
     public ResponseEntity<BookingResponse> createBooking(
             @Valid @RequestBody BookingRequest request,
-            @RequestHeader("X-User-Id") String userId) {
+            @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(bookingService.createBooking(request, userId));
+                .body(bookingService.createBooking(request, jwt.getSubject()));
     }
 
     // CANCEL BOOKING
     @DeleteMapping("/{id}")
     public ResponseEntity<BookingResponse> cancelBooking(
             @PathVariable Long id,
-            @RequestHeader("X-User-Id") String userId) {
-        return ResponseEntity.ok(bookingService.cancelBooking(id, userId));
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(bookingService.cancelBooking(id, jwt.getSubject()));
     }
 
     // GET BOOKING BY ID
@@ -63,7 +65,7 @@ public class BookingController {
     // GET BOOKINGS BY USER
     @GetMapping("/user")
     public ResponseEntity<List<BookingResponse>> getBookingsByUser(
-            @RequestHeader("X-User-Id") String userId) {
-        return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(bookingService.getBookingsByUser(jwt.getSubject()));
     }
 }
