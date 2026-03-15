@@ -43,7 +43,22 @@ services:
       interval: ${POSTGRES_HEALTH_INTERVAL}
       timeout: ${POSTGRES_HEALTH_TIMEOUT}
       retries: ${POSTGRES_HEALTH_RETRIES}
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - ${REDIS_VOLUME}:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
     driver: local

@@ -13,6 +13,10 @@ import com.example.seat_service.service.mapper.EventSeatStatusMapper;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -20,9 +24,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EventService {
+
     private final EventRepository eventRepository;
     private final VenueRepository venueRepository;
     private final SeatRepository seatRepository;
@@ -45,33 +51,78 @@ public class EventService {
                 .toList();
     }
 
+    @Cacheable(value = "events", key = "'venue:' + #venueId")
     public List<EventResponse> findAllByVenueId(Long venueId) {
+        log.info("Cache MISS - fetching events by venueId:{} from DB", venueId);
         if (!venueRepository.existsById(venueId)) {
             throw new EntityNotFoundException("Venue not found with id: " + venueId);
         }
         return toResponseList(eventRepository.findAllByVenueId(venueId));
     }
 
+    @Cacheable(value = "events", key = "'range:' + #from + ':' + #to")
     public List<EventResponse> findAllByStartTimeBetween(Instant from, Instant to) {
+        log.info("Cache MISS - fetching events by range from:{} to:{} from DB", from, to);
         return toResponseList(eventRepository.findAllByStartTimeBetween(from, to));
     }
 
+    @Cacheable(value = "events", key = "'status:' + #status")
     public List<EventResponse> findAllByStatus(EventStatus status) {
+        log.info("Cache MISS - fetching events by status:{} from DB", status);
         return toResponseList(eventRepository.findByStatus(status));
     }
 
+    @Cacheable(value = "events", key = "'venue:' + #venueId + ':range:' + #from + ':' + #to")
     public List<EventResponse> findAllByVenueIdAndStartTimeBetween(Long venueId, Instant from, Instant to) {
+        log.info("Cache MISS - fetching events by venueId:{} range from:{} to:{} from DB", venueId, from, to);
         if (!venueRepository.existsById(venueId)) {
             throw new EntityNotFoundException("Venue not found with id: " + venueId);
         }
         return toResponseList(eventRepository.findAllByVenueIdAndStartTimeBetween(venueId, from, to));
     }
 
+    @Cacheable(value = "events", key = "'bookable'")
     public List<EventResponse> findAllCurrentlyBookable() {
+        log.info("Cache MISS - fetching bookable events from DB");
         return toResponseList(eventRepository.findAllCurrentlyBookable(Instant.now()));
     }
 
+    @Cacheable(value = "events", key = "#id")
+    public EventResponse findEventById(Long id) {
+        log.info("Cache MISS - fetching event id:{} from DB", id);
+        return eventMapper.toEventResponse(
+                eventRepository.findById(id)
+                        .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id))
+        );
+    }
+
+    @Cacheable(value = "seatMap", key = "#eventId")
+    public List<EventSeatStatusResponse> findAllSeatsByEventId(Long eventId) {
+        log.info("Cache MISS - fetching seat map for eventId:{} from DB", eventId);
+        if (!eventRepository.existsById(eventId)) {
+            throw new EntityNotFoundException("Event not found with id: " + eventId);
+        }
+        return eventSeatStatusRepository.findAllByEventId(eventId)
+                .stream()
+                .map(eventSeatStatusMapper::toResponse)
+                .toList();
+    }
+
+    public List<EventSeatStatusResponse> findSeatsByEventIdAndStatus(Long eventId, SeatBookingStatus status) {
+        // not cached — available seats change too frequently
+        if (!eventRepository.existsById(eventId)) {
+            throw new EntityNotFoundException("Event not found with id: " + eventId);
+        }
+        return eventSeatStatusRepository.findAllByEventIdAndStatus(eventId, status)
+                .stream()
+                .map(eventSeatStatusMapper::toResponse)
+                .toList();
+    }
+
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "events", allEntries = true)
+    })
     public EventResponse createEvent(EventRequest request) {
         Venue venue = venueRepository.findById(request.getVenue_id())
                 .orElseThrow(() -> new EntityNotFoundException("Venue not found with id: " + request.getVenue_id()));
@@ -86,14 +137,10 @@ public class EventService {
         return eventMapper.toEventResponse(saved, 0L);
     }
 
-    public EventResponse findEventById(Long id) {
-        return eventMapper.toEventResponse(
-                eventRepository.findById(id)
-                        .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id))
-        );
-    }
-
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "events", allEntries = true)
+    })
     public EventResponse updateEvent(Long id, EventRequest request) {
         Event existing = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id));
@@ -112,34 +159,16 @@ public class EventService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "events", allEntries = true),
+            @CacheEvict(value = "seatMap", key = "#id")
+    })
     public void deleteEvent(Long id) {
         if (!eventRepository.existsById(id)) {
             throw new EntityNotFoundException("Event not found with id: " + id);
         }
         eventSeatStatusRepository.deleteAllByEventId(id);
         eventRepository.deleteById(id);
-    }
-
-    // ── seat availability ────────────────────────────────────────────────────
-
-    public List<EventSeatStatusResponse> findAllSeatsByEventId(Long eventId) {
-        if (!eventRepository.existsById(eventId)) {
-            throw new EntityNotFoundException("Event not found with id: " + eventId);
-        }
-        return eventSeatStatusRepository.findAllByEventId(eventId)
-                .stream()
-                .map(eventSeatStatusMapper::toResponse)
-                .toList();
-    }
-
-    public List<EventSeatStatusResponse> findSeatsByEventIdAndStatus(Long eventId, SeatBookingStatus status) {
-        if (!eventRepository.existsById(eventId)) {
-            throw new EntityNotFoundException("Event not found with id: " + eventId);
-        }
-        return eventSeatStatusRepository.findAllByEventIdAndStatus(eventId, status)
-                .stream()
-                .map(eventSeatStatusMapper::toResponse)
-                .toList();
     }
 
     // ── private helpers ──────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 
@@ -13,7 +14,7 @@ import java.math.BigDecimal;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SeatResponse {
+public class SeatResponse implements Serializable {
     private Long id;
     private Long venue_id;
     private String section;

@@ -6,13 +6,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.Instant;
 
 @Builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class EventResponse {
+public class EventResponse implements Serializable {
     private Long id;
     private Long venue_id;
     private String title;

@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.Instant;
 
 // VenueResponse.java
@@ -14,7 +15,7 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VenueResponse {
+public class VenueResponse implements Serializable {
     private Long id;
     private String name;
     private String address;

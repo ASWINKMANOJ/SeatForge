@@ -13,6 +13,12 @@ import com.example.seat_service.service.mapper.BookingMapper;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 // BookingService.java
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingService {
@@ -31,19 +38,21 @@ public class BookingService {
     private final EventSeatStatusRepository eventSeatStatusRepository;
     private final EventRepository eventRepository;
     private final BookingMapper bookingMapper;
+    private final CacheManager cacheManager;
 
-    // LOCK SEATS
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "seatMap", key = "#request.eventId"),
+            @CacheEvict(value = "events", key = "#request.eventId")
+    })
     public LockResponse lockSeats(LockRequest request, String userId) {
         List<EventSeatStatus> seats = eventSeatStatusRepository
                 .findAllByEventIdAndSeatIds(request.getEventId(), request.getSeatIds());
 
-        // check requested seats match found seats
         if (seats.size() != request.getSeatIds().size()) {
             throw new EntityNotFoundException("One or more seats not found for this event");
         }
 
-        // check all seats are AVAILABLE
         List<String> unavailable = seats.stream()
                 .filter(s -> s.getStatus() != SeatBookingStatus.AVAILABLE)
                 .map(s -> s.getSeat().getRowLabel() + s.getSeat().getSeatLabel())
@@ -53,26 +62,40 @@ public class BookingService {
             throw new IllegalStateException("Seats no longer available: " + unavailable);
         }
 
-        // lock seats
-        Instant now = Instant.now();
-        seats.forEach(s -> {
-            s.setStatus(SeatBookingStatus.LOCKED);
-            s.setLockedByUserId(userId);
-            s.setLockedAt(now);
-        });
+        try {
+            Instant now = Instant.now();
+            seats.forEach(s -> {
+                s.setStatus(SeatBookingStatus.LOCKED);
+                s.setLockedByUserId(userId);
+                s.setLockedAt(now);
+            });
 
-        eventSeatStatusRepository.saveAll(seats);
+            eventSeatStatusRepository.saveAll(seats);
 
-        return LockResponse.builder()
-                .eventSeatStatusIds(seats.stream().map(EventSeatStatus::getId).toList())
-                .lockExpiresAt(now.plus(10, ChronoUnit.MINUTES))
-                .build();
+            log.info("Seats locked - eventId:{} userId:{} seats:{}",
+                    request.getEventId(), userId, request.getSeatIds());
+
+            return LockResponse.builder()
+                    .eventSeatStatusIds(seats.stream().map(EventSeatStatus::getId).toList())
+                    .lockExpiresAt(now.plus(10, ChronoUnit.MINUTES))
+                    .build();
+
+        } catch (ObjectOptimisticLockingFailureException e) {
+            log.warn("Optimistic lock conflict - eventId:{} userId:{}", request.getEventId(), userId);
+            throw new IllegalStateException("Seat was just taken by another user, please select a different seat");
+        }
     }
 
-    // UNLOCK SEATS
     @Transactional
     public void unlockSeats(List<Long> eventSeatStatusIds) {
         List<EventSeatStatus> seats = eventSeatStatusRepository.findAllById(eventSeatStatusIds);
+
+        if (seats.isEmpty()) {
+            throw new EntityNotFoundException("No seats found for given ids");
+        }
+
+        // get eventId from already fetched seats — no extra DB query
+        Long eventId = seats.getFirst().getEvent().getId();
 
         seats.forEach(s -> {
             s.setStatus(SeatBookingStatus.AVAILABLE);
@@ -81,18 +104,24 @@ public class BookingService {
         });
 
         eventSeatStatusRepository.saveAll(seats);
+
+        // manual eviction since eventId comes from fetched entity
+        evictSeatCache(eventId);
+
+        log.info("Seats unlocked - eventId:{} eventSeatStatusIds:{}", eventId, eventSeatStatusIds);
     }
 
-    // CREATE BOOKING
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "seatMap", key = "#request.eventId"),
+            @CacheEvict(value = "events", key = "#request.eventId")
+    })
     public BookingResponse createBooking(BookingRequest request, String userId) {
-        // check user hasn't already booked this event
         bookingRepository.findByUserIdAndEventIdAndStatus(userId, request.getEventId(), BookingStatus.CONFIRMED)
                 .ifPresent(b -> {
                     throw new IllegalStateException("User already has a confirmed booking for this event");
                 });
 
-        // verify seats are still locked by this user
         List<EventSeatStatus> seats = eventSeatStatusRepository
                 .findAllByEventIdAndSeatIds(request.getEventId(), request.getSeatIds());
 
@@ -104,7 +133,6 @@ public class BookingService {
             throw new IllegalStateException("Seats are no longer locked for this user, please select seats again");
         }
 
-        // dummy payment check
         if (request.getPaymentId() == null || request.getPaymentId().isBlank()) {
             throw new IllegalStateException("Payment not completed");
         }
@@ -112,12 +140,10 @@ public class BookingService {
         Event event = eventRepository.findById(request.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + request.getEventId()));
 
-        // calculate total price from locked seats
         BigDecimal totalPrice = seats.stream()
                 .map(EventSeatStatus::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // create booking
         Instant now = Instant.now();
         Booking booking = new Booking();
         booking.setUserId(userId);
@@ -130,7 +156,6 @@ public class BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
-        // create BookingSeat rows
         List<BookingSeat> bookingSeats = seats.stream()
                 .map(s -> BookingSeat.builder()
                         .booking(saved)
@@ -141,7 +166,6 @@ public class BookingService {
 
         bookingSeatRepository.saveAll(bookingSeats);
 
-        // mark seats as BOOKED
         seats.forEach(s -> {
             s.setStatus(SeatBookingStatus.BOOKED);
             s.setBookedByUserId(userId);
@@ -152,35 +176,36 @@ public class BookingService {
 
         eventSeatStatusRepository.saveAll(seats);
 
+        log.info("Booking created - bookingCode:{} userId:{} eventId:{}",
+                saved.getBookingCode(), userId, request.getEventId());
+
         return bookingMapper.toResponse(saved, bookingSeats);
     }
 
-    // CANCEL BOOKING
     @Transactional
     public BookingResponse cancelBooking(Long bookingId, String userId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found with id: " + bookingId));
 
-        // verify booking belongs to user
         if (!booking.getUserId().equals(userId)) {
             throw new IllegalStateException("Booking does not belong to this user");
         }
 
-        // verify booking is CONFIRMED
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
             throw new IllegalStateException("Only confirmed bookings can be cancelled");
         }
 
-        // fetch booking seats before deletion
+        // get eventId from already fetched booking — no extra DB query
+        Long eventId = booking.getEvent().getId();
+
         List<BookingSeat> bookingSeats = bookingSeatRepository.findAllByBookingId(bookingId);
 
-        // release seats back to AVAILABLE
         List<Long> seatIds = bookingSeats.stream()
                 .map(bs -> bs.getSeat().getId())
                 .toList();
 
         List<EventSeatStatus> eventSeats = eventSeatStatusRepository
-                .findAllByEventIdAndSeatIds(booking.getEvent().getId(), seatIds);
+                .findAllByEventIdAndSeatIds(eventId, seatIds);
 
         eventSeats.forEach(s -> {
             s.setStatus(SeatBookingStatus.AVAILABLE);
@@ -190,24 +215,25 @@ public class BookingService {
 
         eventSeatStatusRepository.saveAll(eventSeats);
 
-        // cancel booking
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelledAt(Instant.now());
         Booking saved = bookingRepository.save(booking);
 
+        // manual eviction since eventId comes from fetched entity
+        evictSeatCache(eventId);
+
+        log.info("Booking cancelled - bookingId:{} userId:{} eventId:{}", bookingId, userId, eventId);
+
         return bookingMapper.toResponse(saved, bookingSeats);
     }
 
-    // GET BOOKING BY ID
     public BookingResponse getBookingById(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found with id: " + bookingId));
-
         List<BookingSeat> bookingSeats = bookingSeatRepository.findAllByBookingId(bookingId);
         return bookingMapper.toResponse(booking, bookingSeats);
     }
 
-    // GET BOOKINGS BY USER
     public List<BookingResponse> getBookingsByUser(String userId) {
         return bookingRepository.findAllByUserId(userId)
                 .stream()
@@ -218,6 +244,13 @@ public class BookingService {
     }
 
     // ── private helpers ──────────────────────────────────────────────────────
+
+    private void evictSeatCache(Long eventId) {
+        Cache seatMap = cacheManager.getCache("seatMap");
+        Cache events = cacheManager.getCache("events");
+        if (seatMap != null) seatMap.evict(eventId);
+        if (events != null) events.evict(eventId);
+    }
 
     private String generateBookingCode() {
         return "BK-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();

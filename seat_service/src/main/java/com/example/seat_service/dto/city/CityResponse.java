@@ -3,8 +3,10 @@ package com.example.seat_service.dto.city;
 import com.example.seat_service.entity.City;
 import lombok.Getter;
 
+import java.io.Serializable;
+
 @Getter
-public class CityResponse {
+public class CityResponse implements Serializable {
     private final Long id;
     private final String name;
     private final String state;

@@ -9,26 +9,32 @@ import com.example.seat_service.repository.VenueRepository;
 import com.example.seat_service.service.mapper.SeatMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SeatService {
+
     private final SeatRepository seatRepository;
     private final VenueRepository venueRepository;
     private final SeatMapper seatMapper;
 
+    @Cacheable(value = "seats", key = "'venue:' + #venueId")
     public List<SeatResponse> findAllSeatByVenue(Long venueId) {
+        log.info("Cache MISS - fetching seats by venueId:{} from DB", venueId);
         List<Seat> seats = seatRepository.findAllWithVenue(venueId);
 
         if (seats.isEmpty()) {
-            // checking why it's empty
             if (!venueRepository.existsById(venueId)) {
                 throw new EntityNotFoundException("Venue not found with id: " + venueId);
             }
-            return List.of(); // venue exists but has no seats
+            return List.of();
         }
 
         return seats.stream()
@@ -36,10 +42,14 @@ public class SeatService {
                 .toList();
     }
 
+    @Cacheable(value = "seats", key = "#seatId")
     public SeatResponse findSeatById(Long seatId) {
-        return seatMapper.toSeatResponse(seatRepository.findById(seatId).orElseThrow(()-> new EntityNotFoundException("Seat not found with id: " + seatId)));
+        log.info("Cache MISS - fetching seat id:{} from DB", seatId);
+        return seatMapper.toSeatResponse(seatRepository.findById(seatId)
+                .orElseThrow(() -> new EntityNotFoundException("Seat not found with id: " + seatId)));
     }
 
+    @CacheEvict(value = "seats", allEntries = true)
     public SeatResponse createSeat(SeatRequest seatRequest) {
         Venue venue = venueRepository.findById(seatRequest.getVenue_id())
                 .orElseThrow(() -> new EntityNotFoundException("Venue not found with id: " + seatRequest.getVenue_id()));
@@ -56,18 +66,17 @@ public class SeatService {
         return seatMapper.toSeatResponse(seatRepository.save(seat));
     }
 
+    @CacheEvict(value = "seats", allEntries = true)
     public SeatResponse updateSeat(Long seatId, SeatRequest seatRequest) {
         Seat existing = seatRepository.findById(seatId)
                 .orElseThrow(() -> new EntityNotFoundException("Seat not found with id: " + seatId));
 
-        // update venue only if venueId changed
         if (!existing.getVenue().getId().equals(seatRequest.getVenue_id())) {
             Venue newVenue = venueRepository.findById(seatRequest.getVenue_id())
                     .orElseThrow(() -> new EntityNotFoundException("Venue not found with id: " + seatRequest.getVenue_id()));
             existing.setVenue(newVenue);
         }
 
-        // duplicate check — exclude current seat from check
         if (seatRepository.existsByRowLabelAndSeatLabelAndVenue_IdAndIdNot(
                 seatRequest.getRowLabel(),
                 seatRequest.getSeatLabel(),
@@ -84,6 +93,7 @@ public class SeatService {
         return seatMapper.toSeatResponse(seatRepository.save(existing));
     }
 
+    @CacheEvict(value = "seats", allEntries = true)
     public void deleteSeat(Long seatId) {
         if (!seatRepository.existsById(seatId)) {
             throw new EntityNotFoundException("Seat not found with id: " + seatId);
