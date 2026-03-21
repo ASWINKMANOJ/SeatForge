@@ -3,6 +3,7 @@ package com.example.seat_service.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -48,6 +49,21 @@ public class Event {
 
     @Enumerated(EnumType.STRING)
     private EventStatus status;
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category")
+    private EventCategory category;   // new enum
+
+    @Column(name = "is_featured")
+    private Boolean isFeatured = false;
+
+    @Column(name = "is_selling_fast")
+    private Boolean isSellingFast = false;
+
+    @Column(name = "starting_price", precision = 12, scale = 2)
+    private BigDecimal startingPrice;  // min price across all seats
 
     private Instant createdAt;
 

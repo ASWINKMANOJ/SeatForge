@@ -11,26 +11,31 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-@Builder
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EventResponse implements Serializable {
+public class EventDetailResponse implements Serializable {
     private Long id;
-    private Long venue_id;
     private String title;
     private String description;
-    private Instant startTime;
-    private Instant endTime;
-    private Instant bookingOpenAt;
-    private Instant bookingCloseAt;
-    private EventStatus eventStatus;
-    private Instant updatedAt;
-    private Instant createdAt;
-    private Long availableSeats;
     private String imageUrl;
     private EventCategory category;
     private Boolean isFeatured;
     private Boolean isSellingFast;
     private BigDecimal startingPrice;
+    private Long availableSeats;
+    private Instant startTime;
+    private Instant endTime;
+    private Instant bookingOpenAt;
+    private Instant bookingCloseAt;
+    private EventStatus eventStatus;
+    private Long venueId;
+    private String venueName;
+    private String venueAddress;
+    private String cityName;
+    private String cityState;
+    private String cityCountry;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

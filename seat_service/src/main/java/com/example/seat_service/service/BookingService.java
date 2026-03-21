@@ -2,6 +2,8 @@ package com.example.seat_service.service;
 
 import com.example.seat_service.dto.booking.BookingRequest;
 import com.example.seat_service.dto.booking.BookingResponse;
+import com.example.seat_service.dto.booking.BookingSummaryResponse;
+import com.example.seat_service.dto.booking.BookingDetailResponse;
 import com.example.seat_service.dto.lock.LockRequest;
 import com.example.seat_service.dto.lock.LockResponse;
 import com.example.seat_service.entity.*;
@@ -17,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -183,6 +187,10 @@ public class BookingService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "userBookings", key = "#userId"),
+            @CacheEvict(value = "bookingDetail", key = "#bookingId")
+    })
     public BookingResponse cancelBooking(Long bookingId, String userId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found with id: " + bookingId));
@@ -227,19 +235,22 @@ public class BookingService {
         return bookingMapper.toResponse(saved, bookingSeats);
     }
 
-    public BookingResponse getBookingById(Long bookingId) {
+    @Cacheable(value = "bookingDetail", key = "#bookingId")
+    public BookingDetailResponse getBookingById(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found with id: " + bookingId));
         List<BookingSeat> bookingSeats = bookingSeatRepository.findAllByBookingId(bookingId);
-        return bookingMapper.toResponse(booking, bookingSeats);
+        return bookingMapper.toDetailResponse(booking, bookingSeats);
     }
 
-    public List<BookingResponse> getBookingsByUser(String userId) {
+    @Cacheable(value = "userBookings", key = "#userId")
+    public List<BookingSummaryResponse> getBookingsByUser(String userId) {
         return bookingRepository.findAllByUserId(userId)
                 .stream()
-                .map(booking -> bookingMapper.toResponse(
-                        booking,
-                        bookingSeatRepository.findAllByBookingId(booking.getId())))
+                .map(booking -> {
+                    int seatCount = bookingSeatRepository.countByBookingId(booking.getId()).intValue();
+                    return bookingMapper.toSummaryResponse(booking, seatCount);
+                })
                 .toList();
     }
 

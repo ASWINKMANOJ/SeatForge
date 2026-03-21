@@ -20,6 +20,10 @@ public interface VenueRepository extends JpaRepository<Venue,Long> {
     @Query("SELECT v FROM Venue v JOIN FETCH v.city WHERE v.city.id = :cityId AND v.isActive = :isActive")
     List<Venue> findAllByCityIdAndIsActive(@Param("cityId") Long cityId, @Param("isActive") Boolean isActive);
 
+    // VenueRepository.java — add this
+    @Query("SELECT v FROM Venue v JOIN FETCH v.city WHERE v.isActive = true ORDER BY v.totalCapacity DESC")
+    List<Venue> findTopVenuesByCapacity();
+
     // general findAll with fetch (no index filter)
     @Query("SELECT v FROM Venue v JOIN FETCH v.city")
     List<Venue> findAllWithCity();

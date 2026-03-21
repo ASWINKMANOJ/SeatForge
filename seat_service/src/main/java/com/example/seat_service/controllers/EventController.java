@@ -4,7 +4,11 @@ package com.example.seat_service.controllers;
 import com.example.seat_service.dto.eventSeatStatus.EventSeatStatusResponse;
 import com.example.seat_service.dto.event.EventRequest;
 import com.example.seat_service.dto.event.EventResponse;
+import com.example.seat_service.dto.event.EventCardResponse;
+import com.example.seat_service.dto.event.EventDetailResponse;
+import com.example.seat_service.dto.event.EventAdminResponse;
 import com.example.seat_service.entity.EventStatus;
+import com.example.seat_service.entity.EventCategory;
 import com.example.seat_service.entity.SeatBookingStatus;
 import com.example.seat_service.service.EventService;
 import jakarta.validation.Valid;
@@ -28,13 +32,13 @@ public class EventController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('admin:events')")
-    public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventRequest request) {
+    public ResponseEntity<EventDetailResponse> createEvent(@Valid @RequestBody EventRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(eventService.createEvent(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('admin:events')")
-    public ResponseEntity<EventResponse> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request) {
+    public ResponseEntity<EventDetailResponse> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request) {
         return ResponseEntity.ok(eventService.updateEvent(id, request));
     }
 
@@ -47,23 +51,23 @@ public class EventController {
 
     @GetMapping("/admin/all")
     @PreAuthorize("hasAuthority('admin:all')")
-    public ResponseEntity<List<EventResponse>> getAllEvents() {
-        return ResponseEntity.ok(eventService.findAllByStatus(null));
+    public ResponseEntity<List<EventAdminResponse>> getAllEvents() {
+        return ResponseEntity.ok(eventService.findAllByStatusAdmin(null));
     }
 
     @GetMapping("/admin/status")
     @PreAuthorize("hasAuthority('admin:all')")
-    public ResponseEntity<List<EventResponse>> getByAnyStatus(@RequestParam EventStatus status) {
-        return ResponseEntity.ok(eventService.findAllByStatus(status));
+    public ResponseEntity<List<EventAdminResponse>> getByAnyStatus(@RequestParam EventStatus status) {
+        return ResponseEntity.ok(eventService.findAllByStatusAdmin(status));
     }
 
     @GetMapping("/admin/venue/{venueId}/range")
     @PreAuthorize("hasAuthority('admin:all')")
-    public ResponseEntity<List<EventResponse>> getByVenueAndRange(
+    public ResponseEntity<List<EventAdminResponse>> getByVenueAndRange(
             @PathVariable Long venueId,
             @RequestParam Instant from,
             @RequestParam Instant to) {
-        return ResponseEntity.ok(eventService.findAllByVenueIdAndStartTimeBetween(venueId, from, to));
+        return ResponseEntity.ok(eventService.findAllByVenueIdAndStartTimeBetweenAdmin(venueId, from, to));
     }
 
     // ─── USER ENDPOINTS ─────────────────────────────────────────────────────────
@@ -81,30 +85,39 @@ public class EventController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
+    public ResponseEntity<EventDetailResponse> getEventById(@PathVariable Long id) {
         return ResponseEntity.ok(eventService.findEventById(id));
     }
 
     @GetMapping("/venue/{venueId}")
-    public ResponseEntity<List<EventResponse>> getByVenue(@PathVariable Long venueId) {
+    public ResponseEntity<List<EventCardResponse>> getByVenue(@PathVariable Long venueId) {
         return ResponseEntity.ok(eventService.findAllByVenueId(venueId));
     }
 
     @GetMapping("/bookable")
-    public ResponseEntity<List<EventResponse>> getCurrentlyBookable() {
+    public ResponseEntity<List<EventCardResponse>> getCurrentlyBookable() {
         return ResponseEntity.ok(eventService.findAllCurrentlyBookable());
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<EventCardResponse>> search(
+            @RequestParam String query,
+            @RequestParam(required = false) String city) {
+        return ResponseEntity.ok(eventService.searchEvents(query, city));
+    }
+
     @GetMapping("/status")
-    public ResponseEntity<List<EventResponse>> getByUserVisibleStatus(@RequestParam EventStatus status) {
+    public ResponseEntity<List<EventCardResponse>> getByUserVisibleStatus(
+            @RequestParam EventStatus status,
+            @RequestParam(required = false) EventCategory category) {
         if (status != EventStatus.ACTIVE && status != EventStatus.SOLD_OUT) {
             throw new IllegalArgumentException("Invalid status filter: " + status);
         }
-        return ResponseEntity.ok(eventService.findAllByStatus(status));
+        return ResponseEntity.ok(eventService.findAllByStatus(status, category));
     }
 
     @GetMapping("/range")
-    public ResponseEntity<List<EventResponse>> getByStartTimeBetween(
+    public ResponseEntity<List<EventCardResponse>> getByStartTimeBetween(
             @RequestParam Instant from,
             @RequestParam Instant to) {
         return ResponseEntity.ok(eventService.findAllByStartTimeBetween(from, to));

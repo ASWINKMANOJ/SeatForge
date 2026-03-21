@@ -2,6 +2,8 @@ package com.example.seat_service.controllers;
 
 import com.example.seat_service.dto.booking.BookingRequest;
 import com.example.seat_service.dto.booking.BookingResponse;
+import com.example.seat_service.dto.booking.BookingDetailResponse;
+import com.example.seat_service.dto.booking.BookingSummaryResponse;
 import com.example.seat_service.dto.lock.LockRequest;
 import com.example.seat_service.dto.lock.LockResponse;
 import com.example.seat_service.service.BookingService;
@@ -58,13 +60,13 @@ public class BookingController {
 
     // GET BOOKING BY ID
     @GetMapping("/{id}")
-    public ResponseEntity<BookingResponse> getBookingById(@PathVariable Long id) {
+    public ResponseEntity<BookingDetailResponse> getBookingById(@PathVariable Long id) {
         return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 
     // GET BOOKINGS BY USER
     @GetMapping("/user")
-    public ResponseEntity<List<BookingResponse>> getBookingsByUser(
+    public ResponseEntity<List<BookingSummaryResponse>> getBookingsByUser(
             @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(bookingService.getBookingsByUser(jwt.getSubject()));
     }

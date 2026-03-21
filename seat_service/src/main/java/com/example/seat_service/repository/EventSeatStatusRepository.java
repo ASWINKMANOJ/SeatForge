@@ -1,8 +1,6 @@
 package com.example.seat_service.repository;
 
-import com.example.seat_service.entity.Event;
-import com.example.seat_service.entity.EventSeatStatus;
-import com.example.seat_service.entity.SeatBookingStatus;
+import com.example.seat_service.entity.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -41,4 +39,8 @@ public interface EventSeatStatusRepository extends JpaRepository<EventSeatStatus
 
     // delete all seats when event is deleted
     void deleteAllByEventId(Long eventId);
+
+    // EventSeatStatusRepository.java — add these
+    @Query("SELECT COUNT(e) FROM EventSeatStatus e WHERE e.status = :status")
+    Long countByStatus(@Param("status") SeatBookingStatus status);
 }

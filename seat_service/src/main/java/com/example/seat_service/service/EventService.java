@@ -3,7 +3,11 @@ package com.example.seat_service.service;
 import com.example.seat_service.dto.eventSeatStatus.EventSeatStatusResponse;
 import com.example.seat_service.dto.event.EventRequest;
 import com.example.seat_service.dto.event.EventResponse;
+import com.example.seat_service.dto.event.EventCardResponse;
+import com.example.seat_service.dto.event.EventAdminResponse;
+import com.example.seat_service.dto.event.EventDetailResponse;
 import com.example.seat_service.entity.*;
+import com.example.seat_service.entity.EventCategory;
 import com.example.seat_service.repository.EventRepository;
 import com.example.seat_service.repository.EventSeatStatusRepository;
 import com.example.seat_service.repository.SeatRepository;
@@ -37,7 +41,8 @@ public class EventService {
     private final EventSeatStatusMapper eventSeatStatusMapper;
 
     // fix N+1 — batch count for list endpoints
-    private List<EventResponse> toResponseList(List<Event> events) {
+    private List<EventCardResponse> toCardResponseList(List<Event> events) {
+        if (events.isEmpty()) return List.of();
         List<Long> eventIds = events.stream().map(Event::getId).toList();
         Map<Long, Long> countMap = eventSeatStatusRepository
                 .countAvailableSeatsForEvents(eventIds, SeatBookingStatus.AVAILABLE)
@@ -47,53 +52,93 @@ public class EventService {
                         row -> (Long) row[1]
                 ));
         return events.stream()
-                .map(event -> eventMapper.toEventResponse(event, countMap.getOrDefault(event.getId(), 0L)))
+                .map(event -> eventMapper.toCardResponse(event, countMap.getOrDefault(event.getId(), 0L)))
+                .toList();
+    }
+
+    private List<EventAdminResponse> toAdminResponseList(List<Event> events) {
+        if (events.isEmpty()) return List.of();
+        List<Long> eventIds = events.stream().map(Event::getId).toList();
+        Map<Long, Long> countMap = eventSeatStatusRepository
+                .countAvailableSeatsForEvents(eventIds, SeatBookingStatus.AVAILABLE)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+        return events.stream()
+                .map(event -> eventMapper.toAdminResponse(event, countMap.getOrDefault(event.getId(), 0L), (long) event.getVenue().getTotalCapacity()))
                 .toList();
     }
 
     @Cacheable(value = "events", key = "'venue:' + #venueId")
-    public List<EventResponse> findAllByVenueId(Long venueId) {
+    public List<EventCardResponse> findAllByVenueId(Long venueId) {
         log.info("Cache MISS - fetching events by venueId:{} from DB", venueId);
         if (!venueRepository.existsById(venueId)) {
             throw new EntityNotFoundException("Venue not found with id: " + venueId);
         }
-        return toResponseList(eventRepository.findAllByVenueId(venueId));
+        return toCardResponseList(eventRepository.findAllByVenueId(venueId));
     }
 
     @Cacheable(value = "events", key = "'range:' + #from + ':' + #to")
-    public List<EventResponse> findAllByStartTimeBetween(Instant from, Instant to) {
+    public List<EventCardResponse> findAllByStartTimeBetween(Instant from, Instant to) {
         log.info("Cache MISS - fetching events by range from:{} to:{} from DB", from, to);
-        return toResponseList(eventRepository.findAllByStartTimeBetween(from, to));
+        return toCardResponseList(eventRepository.findAllByStartTimeBetween(from, to));
     }
 
-    @Cacheable(value = "events", key = "'status:' + #status")
-    public List<EventResponse> findAllByStatus(EventStatus status) {
-        log.info("Cache MISS - fetching events by status:{} from DB", status);
-        return toResponseList(eventRepository.findByStatus(status));
+    @Cacheable(value = "events", key = "'status:' + #status + (#category != null ? ':category:' + #category : '')")
+    public List<EventCardResponse> findAllByStatus(EventStatus status, EventCategory category) {
+        log.info("Cache MISS - fetching events by status:{} category:{} from DB", status, category);
+        List<Event> events = eventRepository.findByStatus(status);
+        if (category != null) {
+            events = events.stream().filter(e -> e.getCategory() == category).toList();
+        }
+        return toCardResponseList(events);
     }
 
     @Cacheable(value = "events", key = "'venue:' + #venueId + ':range:' + #from + ':' + #to")
-    public List<EventResponse> findAllByVenueIdAndStartTimeBetween(Long venueId, Instant from, Instant to) {
+    public List<EventCardResponse> findAllByVenueIdAndStartTimeBetween(Long venueId, Instant from, Instant to) {
         log.info("Cache MISS - fetching events by venueId:{} range from:{} to:{} from DB", venueId, from, to);
         if (!venueRepository.existsById(venueId)) {
             throw new EntityNotFoundException("Venue not found with id: " + venueId);
         }
-        return toResponseList(eventRepository.findAllByVenueIdAndStartTimeBetween(venueId, from, to));
+        return toCardResponseList(eventRepository.findAllByVenueIdAndStartTimeBetween(venueId, from, to));
     }
 
     @Cacheable(value = "events", key = "'bookable'")
-    public List<EventResponse> findAllCurrentlyBookable() {
+    public List<EventCardResponse> findAllCurrentlyBookable() {
         log.info("Cache MISS - fetching bookable events from DB");
-        return toResponseList(eventRepository.findAllCurrentlyBookable(Instant.now()));
+        return toCardResponseList(eventRepository.findAllCurrentlyBookable(Instant.now()));
     }
 
-    @Cacheable(value = "events", key = "#id")
-    public EventResponse findEventById(Long id) {
-        log.info("Cache MISS - fetching event id:{} from DB", id);
-        return eventMapper.toEventResponse(
-                eventRepository.findById(id)
-                        .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id))
-        );
+    @Cacheable(value = "events", key = "'search:' + #query + ':' + #city")
+    public List<EventCardResponse> searchEvents(String query, String city) {
+        log.info("Cache MISS - searching events query:{} city:{}", query, city);
+        return toCardResponseList(eventRepository.searchEvents(query, city, EventStatus.ACTIVE));
+    }
+
+    @Cacheable(value = "eventDetail", key = "#id")
+    public EventDetailResponse findEventById(Long id) {
+        log.info("Cache MISS - fetching event detail id:{} from DB", id);
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id));
+        Long availableSeats = eventSeatStatusRepository.countByEventIdAndStatus(id, SeatBookingStatus.AVAILABLE);
+        return eventMapper.toDetailResponse(event, availableSeats);
+    }
+
+    @Cacheable(value = "eventsAdmin", key = "'admin:status:' + #status")
+    public List<EventAdminResponse> findAllByStatusAdmin(EventStatus status) {
+        log.info("Cache MISS - fetching admin events by status:{} from DB", status);
+        return toAdminResponseList(eventRepository.findByStatus(status));
+    }
+
+    @Cacheable(value = "eventsAdmin", key = "'admin:venue:' + #venueId + ':range:' + #from + ':' + #to")
+    public List<EventAdminResponse> findAllByVenueIdAndStartTimeBetweenAdmin(Long venueId, Instant from, Instant to) {
+        log.info("Cache MISS - fetching admin events by venueId:{} range from:{} to:{} from DB", venueId, from, to);
+        if (!venueRepository.existsById(venueId)) {
+            throw new EntityNotFoundException("Venue not found with id: " + venueId);
+        }
+        return toAdminResponseList(eventRepository.findAllByVenueIdAndStartTimeBetween(venueId, from, to));
     }
 
     @Cacheable(value = "seatMap", key = "#eventId")
@@ -121,9 +166,10 @@ public class EventService {
 
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "events", allEntries = true)
+            @CacheEvict(value = "events", allEntries = true),
+            @CacheEvict(value = "eventsAdmin", allEntries = true)
     })
-    public EventResponse createEvent(EventRequest request) {
+    public EventDetailResponse createEvent(EventRequest request) {
         Venue venue = venueRepository.findById(request.getVenue_id())
                 .orElseThrow(() -> new EntityNotFoundException("Venue not found with id: " + request.getVenue_id()));
 
@@ -134,14 +180,16 @@ public class EventService {
 
         initializeEventSeats(saved, venue.getId());
 
-        return eventMapper.toEventResponse(saved, 0L);
+        return eventMapper.toDetailResponse(saved, 0L);
     }
 
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "events", allEntries = true)
+            @CacheEvict(value = "events", allEntries = true),
+            @CacheEvict(value = "eventsAdmin", allEntries = true),
+            @CacheEvict(value = "eventDetail", key = "#id")
     })
-    public EventResponse updateEvent(Long id, EventRequest request) {
+    public EventDetailResponse updateEvent(Long id, EventRequest request) {
         Event existing = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id));
 
@@ -155,12 +203,16 @@ public class EventService {
         eventMapper.updateEntity(existing, request);
         existing.setUpdatedAt(Instant.now());
 
-        return eventMapper.toEventResponse(eventRepository.save(existing));
+        Event saved = eventRepository.save(existing);
+        Long availableSeats = eventSeatStatusRepository.countByEventIdAndStatus(saved.getId(), SeatBookingStatus.AVAILABLE);
+        return eventMapper.toDetailResponse(saved, availableSeats);
     }
 
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "events", allEntries = true),
+            @CacheEvict(value = "eventsAdmin", allEntries = true),
+            @CacheEvict(value = "eventDetail", key = "#id"),
             @CacheEvict(value = "seatMap", key = "#id")
     })
     public void deleteEvent(Long id) {

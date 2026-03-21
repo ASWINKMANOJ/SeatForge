@@ -17,4 +17,7 @@ public interface BookingSeatRepository extends JpaRepository<BookingSeat, Long> 
 
     // cleanup when booking is canceled
     void deleteAllByBookingId(Long bookingId);
+
+    @Query("SELECT COUNT(bs) FROM BookingSeat bs WHERE bs.booking.id = :bookingId")
+    Long countByBookingId(@Param("bookingId") Long bookingId);
 }

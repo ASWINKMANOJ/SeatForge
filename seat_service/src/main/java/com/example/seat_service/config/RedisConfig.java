@@ -29,11 +29,15 @@ public class RedisConfig {
                         .fromSerializer(GenericJacksonJsonRedisSerializer.builder().build()));
 
         Map<String, RedisCacheConfiguration> cacheConfigs = Map.of(
-                "cities",  defaults.entryTtl(Duration.ofHours(24)),
-                "venues",  defaults.entryTtl(Duration.ofHours(24)),
-                "seats",   defaults.entryTtl(Duration.ofHours(24)),
-                "events",  defaults.entryTtl(Duration.ofMinutes(5)),
-                "seatMap", defaults.entryTtl(Duration.ofSeconds(30))
+                "cities",        defaults.entryTtl(Duration.ofHours(24)),
+                "venues",        defaults.entryTtl(Duration.ofHours(24)),
+                "seats",         defaults.entryTtl(Duration.ofHours(24)),
+                "events",        defaults.entryTtl(Duration.ofMinutes(5)),
+                "eventDetail",   defaults.entryTtl(Duration.ofMinutes(5)),
+                "eventsAdmin",   defaults.entryTtl(Duration.ofMinutes(1)),
+                "userBookings",  defaults.entryTtl(Duration.ofMinutes(1)),
+                "bookingDetail", defaults.entryTtl(Duration.ofMinutes(2)),
+                "seatMap",       defaults.entryTtl(Duration.ofSeconds(30))
         );
 
         return RedisCacheManager.builder(factory)
