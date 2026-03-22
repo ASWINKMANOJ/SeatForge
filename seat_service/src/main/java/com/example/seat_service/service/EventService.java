@@ -223,6 +223,24 @@ public class EventService {
         eventRepository.deleteById(id);
     }
 
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "events", allEntries = true),
+            @CacheEvict(value = "eventsAdmin", allEntries = true),
+            @CacheEvict(value = "eventDetail", allEntries = true)
+    })
+    public void activateScheduledEvents() {
+        List<Event> draftEvents = eventRepository.findByStatusAndBookingOpenAtBefore(EventStatus.DRAFT, Instant.now());
+        if (!draftEvents.isEmpty()) {
+            for (Event event : draftEvents) {
+                event.setStatus(EventStatus.ACTIVE);
+                event.setUpdatedAt(Instant.now());
+            }
+            eventRepository.saveAll(draftEvents);
+            log.info("Activated {} scheduled draft events.", draftEvents.size());
+        }
+    }
+
     // ── private helpers ──────────────────────────────────────────────────────
 
     private void initializeEventSeats(Event event, Long venueId) {

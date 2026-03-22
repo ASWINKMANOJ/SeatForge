@@ -37,4 +37,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
            "AND LOWER(v.city.name) = LOWER(:city) AND e.status = :status")
     List<Event> searchEvents(@Param("query") String query, @Param("city") String city, @Param("status") EventStatus status);
 
+    @Query("SELECT e FROM Event e WHERE e.status = :status AND e.bookingOpenAt <= :now")
+    List<Event> findByStatusAndBookingOpenAtBefore(@Param("status") EventStatus status, @Param("now") Instant now);
+
 }
