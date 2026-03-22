@@ -78,6 +78,8 @@ public class BookingService {
             log.info("Seats locked - eventId:{} userId:{} seats:{}",
                     request.getEventId(), userId, request.getSeatIds());
 
+            checkAndUpdateEventStatus(request.getEventId());
+
             return LockResponse.builder()
                     .eventSeatStatusIds(seats.stream().map(EventSeatStatus::getId).toList())
                     .lockExpiresAt(now.plus(10, ChronoUnit.MINUTES))
@@ -110,6 +112,8 @@ public class BookingService {
 
         // manual eviction since eventId comes from fetched entity
         evictSeatCache(eventId);
+
+        checkAndUpdateEventStatus(eventId);
 
         log.info("Seats unlocked - eventId:{} eventSeatStatusIds:{}", eventId, eventSeatStatusIds);
     }
@@ -229,6 +233,8 @@ public class BookingService {
         // manual eviction since eventId comes from fetched entity
         evictSeatCache(eventId);
 
+        checkAndUpdateEventStatus(eventId);
+
         log.info("Booking cancelled - bookingId:{} userId:{} eventId:{}", bookingId, userId, eventId);
 
         return bookingMapper.toResponse(saved, bookingSeats);
@@ -254,6 +260,38 @@ public class BookingService {
     }
 
     // ── private helpers ──────────────────────────────────────────────────────
+
+    private void checkAndUpdateEventStatus(Long eventId) {
+        Event event = eventRepository.findById(eventId).orElse(null);
+        if (event == null || (event.getStatus() != EventStatus.ACTIVE && event.getStatus() != EventStatus.SOLD_OUT)) {
+            return;
+        }
+        long availableSeats = eventSeatStatusRepository.countByEventIdAndStatus(eventId, SeatBookingStatus.AVAILABLE);
+        boolean changed = false;
+        if (availableSeats == 0 && event.getStatus() == EventStatus.ACTIVE) {
+            event.setStatus(EventStatus.SOLD_OUT);
+            changed = true;
+        } else if (availableSeats > 0 && event.getStatus() == EventStatus.SOLD_OUT) {
+            event.setStatus(EventStatus.ACTIVE);
+            changed = true;
+        }
+
+        if (changed) {
+            event.setUpdatedAt(Instant.now());
+            eventRepository.save(event);
+            evictEventCache(eventId);
+            log.info("Event {} status automatically updated to {}", eventId, event.getStatus());
+        }
+    }
+
+    private void evictEventCache(Long eventId) {
+        Cache events = cacheManager.getCache("events");
+        Cache eventsAdmin = cacheManager.getCache("eventsAdmin");
+        Cache eventDetail = cacheManager.getCache("eventDetail");
+        if (events != null) events.clear();
+        if (eventsAdmin != null) eventsAdmin.clear();
+        if (eventDetail != null) eventDetail.evict(eventId);
+    }
 
     private void evictSeatCache(Long eventId) {
         Cache seatMap = cacheManager.getCache("seatMap");

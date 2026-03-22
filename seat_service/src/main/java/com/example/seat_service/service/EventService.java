@@ -243,6 +243,25 @@ public class EventService {
         }
     }
 
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "events", allEntries = true),
+            @CacheEvict(value = "eventsAdmin", allEntries = true),
+            @CacheEvict(value = "eventDetail", allEntries = true)
+    })
+    public void completePastEvents() {
+        List<Event> eventsToComplete = eventRepository.findByStatusInAndEndTimeBefore(
+                List.of(EventStatus.ACTIVE, EventStatus.SOLD_OUT), Instant.now());
+        if (!eventsToComplete.isEmpty()) {
+            for (Event event : eventsToComplete) {
+                event.setStatus(EventStatus.COMPLETED);
+                event.setUpdatedAt(Instant.now());
+            }
+            eventRepository.saveAll(eventsToComplete);
+            log.info("Completed {} past events.", eventsToComplete.size());
+        }
+    }
+
     // ── private helpers ──────────────────────────────────────────────────────
 
     private void initializeEventSeats(Event event, Long venueId) {

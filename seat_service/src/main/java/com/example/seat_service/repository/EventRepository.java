@@ -42,4 +42,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e WHERE e.status = :status AND e.bookingOpenAt <= :now")
     List<Event> findByStatusAndBookingOpenAtBefore(@Param("status") EventStatus status, @Param("now") Instant now);
 
+    @Query("SELECT e FROM Event e WHERE e.status IN :statuses AND e.endTime <= :now")
+    List<Event> findByStatusInAndEndTimeBefore(@Param("statuses") List<EventStatus> statuses, @Param("now") Instant now);
+
 }

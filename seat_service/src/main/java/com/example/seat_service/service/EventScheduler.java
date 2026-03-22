@@ -18,4 +18,10 @@ public class EventScheduler {
         log.debug("Running scheduled task to activate draft events...");
         eventService.activateScheduledEvents();
     }
+
+    @Scheduled(fixedRateString = "${scheduler.event.completion.rate:60000}")
+    public void completePastEvents() {
+        log.debug("Running scheduled task to complete past events...");
+        eventService.completePastEvents();
+    }
 }
