@@ -1,6 +1,5 @@
 package com.example.seat_service.dto.venue;
 
-import com.example.seat_service.entity.Venue;
 import com.example.seat_service.entity.VenueType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

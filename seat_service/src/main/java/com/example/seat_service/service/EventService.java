@@ -2,7 +2,6 @@ package com.example.seat_service.service;
 
 import com.example.seat_service.dto.eventSeatStatus.EventSeatStatusResponse;
 import com.example.seat_service.dto.event.EventRequest;
-import com.example.seat_service.dto.event.EventResponse;
 import com.example.seat_service.dto.event.EventCardResponse;
 import com.example.seat_service.dto.event.EventAdminResponse;
 import com.example.seat_service.dto.event.EventDetailResponse;
@@ -42,32 +41,33 @@ public class EventService {
 
     // fix N+1 — batch count for list endpoints
     private List<EventCardResponse> toCardResponseList(List<Event> events) {
-        if (events.isEmpty()) return List.of();
+        if (events.isEmpty())
+            return List.of();
         List<Long> eventIds = events.stream().map(Event::getId).toList();
         Map<Long, Long> countMap = eventSeatStatusRepository
                 .countAvailableSeatsForEvents(eventIds, SeatBookingStatus.AVAILABLE)
                 .stream()
                 .collect(Collectors.toMap(
                         row -> (Long) row[0],
-                        row -> (Long) row[1]
-                ));
+                        row -> (Long) row[1]));
         return events.stream()
                 .map(event -> eventMapper.toCardResponse(event, countMap.getOrDefault(event.getId(), 0L)))
                 .toList();
     }
 
     private List<EventAdminResponse> toAdminResponseList(List<Event> events) {
-        if (events.isEmpty()) return List.of();
+        if (events.isEmpty())
+            return List.of();
         List<Long> eventIds = events.stream().map(Event::getId).toList();
         Map<Long, Long> countMap = eventSeatStatusRepository
                 .countAvailableSeatsForEvents(eventIds, SeatBookingStatus.AVAILABLE)
                 .stream()
                 .collect(Collectors.toMap(
                         row -> (Long) row[0],
-                        row -> (Long) row[1]
-                ));
+                        row -> (Long) row[1]));
         return events.stream()
-                .map(event -> eventMapper.toAdminResponse(event, countMap.getOrDefault(event.getId(), 0L), (long) event.getVenue().getTotalCapacity()))
+                .map(event -> eventMapper.toAdminResponse(event, countMap.getOrDefault(event.getId(), 0L),
+                        (long) event.getVenue().getTotalCapacity()))
                 .toList();
     }
 
@@ -195,7 +195,8 @@ public class EventService {
 
         if (!existing.getVenue().getId().equals(request.getVenue_id())) {
             Venue newVenue = venueRepository.findById(request.getVenue_id())
-                    .orElseThrow(() -> new EntityNotFoundException("Venue not found with id: " + request.getVenue_id()));
+                    .orElseThrow(
+                            () -> new EntityNotFoundException("Venue not found with id: " + request.getVenue_id()));
             existing.setVenue(newVenue);
         }
 
@@ -204,7 +205,8 @@ public class EventService {
         existing.setUpdatedAt(Instant.now());
 
         Event saved = eventRepository.save(existing);
-        Long availableSeats = eventSeatStatusRepository.countByEventIdAndStatus(saved.getId(), SeatBookingStatus.AVAILABLE);
+        Long availableSeats = eventSeatStatusRepository.countByEventIdAndStatus(saved.getId(),
+                SeatBookingStatus.AVAILABLE);
         return eventMapper.toDetailResponse(saved, availableSeats);
     }
 

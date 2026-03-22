@@ -1,9 +1,7 @@
 package com.example.seat_service.controllers;
 
-
 import com.example.seat_service.dto.eventSeatStatus.EventSeatStatusResponse;
 import com.example.seat_service.dto.event.EventRequest;
-import com.example.seat_service.dto.event.EventResponse;
 import com.example.seat_service.dto.event.EventCardResponse;
 import com.example.seat_service.dto.event.EventDetailResponse;
 import com.example.seat_service.dto.event.EventAdminResponse;
@@ -38,7 +36,8 @@ public class EventController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('admin:events')")
-    public ResponseEntity<EventDetailResponse> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request) {
+    public ResponseEntity<EventDetailResponse> updateEvent(@PathVariable Long id,
+            @Valid @RequestBody EventRequest request) {
         return ResponseEntity.ok(eventService.updateEvent(id, request));
     }
 

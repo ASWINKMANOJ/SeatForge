@@ -21,7 +21,6 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
@@ -259,8 +258,10 @@ public class BookingService {
     private void evictSeatCache(Long eventId) {
         Cache seatMap = cacheManager.getCache("seatMap");
         Cache events = cacheManager.getCache("events");
-        if (seatMap != null) seatMap.evict(eventId);
-        if (events != null) events.evict(eventId);
+        if (seatMap != null)
+            seatMap.evict(eventId);
+        if (events != null)
+            events.evict(eventId);
     }
 
     private String generateBookingCode() {

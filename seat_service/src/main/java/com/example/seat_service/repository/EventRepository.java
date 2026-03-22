@@ -1,6 +1,5 @@
 package com.example.seat_service.repository;
 
-import com.example.seat_service.dto.event.EventResponse;
 import com.example.seat_service.entity.Event;
 import com.example.seat_service.entity.EventStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,7 +24,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     // idx_event_venue_start — composite
     @Query("SELECT e FROM Event e JOIN FETCH e.venue WHERE e.venue.id = :venueId AND e.startTime >= :from AND e.startTime <= :to")
-    List<Event> findAllByVenueIdAndStartTimeBetween(@Param("venueId") Long venueId, @Param("from") Instant from, @Param("to") Instant to);
+    List<Event> findAllByVenueIdAndStartTimeBetween(@Param("venueId") Long venueId, @Param("from") Instant from,
+            @Param("to") Instant to);
 
     // idx_event_booking_window
     @Query("SELECT e FROM Event e JOIN FETCH e.venue WHERE e.bookingOpenAt <= :now AND e.bookingCloseAt >= :now")
@@ -33,9 +33,11 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     // custom search
     @Query("SELECT e FROM Event e JOIN FETCH e.venue v WHERE " +
-           "(LOWER(e.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(v.name) LIKE LOWER(CONCAT('%', :query, '%'))) " +
-           "AND LOWER(v.city.name) = LOWER(:city) AND e.status = :status")
-    List<Event> searchEvents(@Param("query") String query, @Param("city") String city, @Param("status") EventStatus status);
+            "(LOWER(e.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(v.name) LIKE LOWER(CONCAT('%', :query, '%'))) "
+            +
+            "AND LOWER(v.city.name) = LOWER(:city) AND e.status = :status")
+    List<Event> searchEvents(@Param("query") String query, @Param("city") String city,
+            @Param("status") EventStatus status);
 
     @Query("SELECT e FROM Event e WHERE e.status = :status AND e.bookingOpenAt <= :now")
     List<Event> findByStatusAndBookingOpenAtBefore(@Param("status") EventStatus status, @Param("now") Instant now);
