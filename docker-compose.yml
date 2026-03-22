@@ -1,22 +1,22 @@
 services:
-  # seat-service:
-  #   image: seat-service:latest
-  #   env_file:
-  #     - .env
-  #   expose:
-  #     - "8080"
-  #   depends_on:
-  #     - postgres
+  seat-service:
+    image: seat-service:latest
+    env_file:
+      - .env
+    expose:
+      - "8080"
+    depends_on:
+      - postgres
 
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: nginx-lb
-  #   ports:
-  #     - "80:80"
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  #   depends_on:
-  #     - seat-service
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-lb
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - seat-service
 
   postgres:
     image: ${POSTGRES_IMAGE}
