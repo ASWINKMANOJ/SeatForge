@@ -1,5 +1,6 @@
 package com.example.seat_service.controllers;
 
+import com.example.seat_service.dto.seat.SeatBulkCreateRequest;
 import com.example.seat_service.dto.seat.SeatRequest;
 import com.example.seat_service.dto.seat.SeatResponse;
 import com.example.seat_service.service.SeatService;
@@ -37,7 +38,7 @@ public class SeatController {
 
     @PostMapping("/bulk")
     @PreAuthorize("hasAuthority('admin:seats')")
-    public ResponseEntity<List<SeatResponse>> createSeatBulk(@Valid @RequestBody List<SeatRequest> seatRequests) {
+    public ResponseEntity<List<SeatResponse>> createSeatBulk(@Valid @RequestBody SeatBulkCreateRequest seatRequests) {
         return ResponseEntity.status(HttpStatus.CREATED).body(seatService.createSeatBulk(seatRequests));
     }
 

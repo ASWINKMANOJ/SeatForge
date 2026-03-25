@@ -19,8 +19,8 @@ services:
       - seat-service
 
   postgres:
-    image: ${POSTGRES_IMAGE}
-    container_name: ${POSTGRES_CONTAINER_NAME}
+    image: postgres:alpine
+    container_name: postgres
     restart: unless-stopped
     env_file:
       - .env

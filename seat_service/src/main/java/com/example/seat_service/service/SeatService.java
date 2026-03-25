@@ -1,5 +1,6 @@
 package com.example.seat_service.service;
 
+import com.example.seat_service.dto.seat.SeatBulkCreateRequest;
 import com.example.seat_service.dto.seat.SeatRequest;
 import com.example.seat_service.dto.seat.SeatResponse;
 import com.example.seat_service.entity.Seat;
@@ -68,51 +69,56 @@ public class SeatService {
     }
 
     @CacheEvict(value = "seats", allEntries = true)
-    public List<SeatResponse> createSeatBulk(List<SeatRequest> seatRequests) {
-        if (seatRequests == null || seatRequests.isEmpty()) {
-            return Collections.emptyList();
-        }
+    public List<SeatResponse> createSeatBulk(SeatBulkCreateRequest request) {
 
-        // Group requests by venue ID to minimize DB lookups
-        Map<Long, List<SeatRequest>> requestsByVenue = seatRequests.stream()
-                .collect(Collectors.groupingBy(SeatRequest::getVenue_id));
+        // 1️⃣ Fetch venue once
+        Venue venue = venueRepository.findById(request.getVenue_id())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Venue not found with id: " + request.getVenue_id()));
+
+        // 2️⃣ Get existing seats for this venue
+        List<Seat> existingSeats = seatRepository.findAllWithVenue(request.getVenue_id());
+
+        // Build a set for fast lookup
+        Set<String> existingSeatKeys = existingSeats.stream()
+                .map(seat -> seat.getRowLabel() + "_" + seat.getSeatLabel())
+                .collect(Collectors.toSet());
 
         List<Seat> seatsToSave = new ArrayList<>();
 
-        for (Map.Entry<Long, List<SeatRequest>> entry : requestsByVenue.entrySet()) {
-            Long venueId = entry.getKey();
-            List<SeatRequest> venueSeats = entry.getValue();
+        // 3️⃣ Generate seats
+        for (String section : request.getSections()) {
+            for (String row : request.getRows()) {
+                for (int i = 1; i <= request.getSeatsPerRow(); i++) {
 
-            // Single venue lookup per unique venue (not per seat)
-            Venue venue = venueRepository.findById(venueId)
-                    .orElseThrow(() -> new EntityNotFoundException("Venue not found with id: " + venueId));
+                    String seatLabel = String.valueOf(i);
+                    String key = row + "_" + seatLabel;
 
-            // Check for duplicates within the request itself
-            Set<String> seenInRequest = new HashSet<>();
-            for (SeatRequest seatRequest : venueSeats) {
-                String key = seatRequest.getRowLabel() + "|" + seatRequest.getSeatLabel();
+                    // Skip duplicates
+                    if (existingSeatKeys.contains(key)) {
+                        continue;
+                    }
 
-                if (!seenInRequest.add(key)) {
-                    throw new IllegalStateException("Duplicate seat " + seatRequest.getRowLabel()
-                            + seatRequest.getSeatLabel() + " in the request for venue id: " + venueId);
+                    Seat seat = new Seat();
+                    seat.setVenue(venue);
+                    seat.setSection(section);
+                    seat.setRowLabel(row);
+                    seat.setSeatLabel(seatLabel);
+                    seat.setSeatType(request.getSeatType());
+                    seat.setBasePrice(request.getBasePrice());
+
+                    seatsToSave.add(seat);
                 }
-
-                // Check for duplicates against existing DB records
-                if (seatRepository.existsByRowLabelAndSeatLabelAndVenue_Id(
-                        seatRequest.getRowLabel(),
-                        seatRequest.getSeatLabel(),
-                        venueId)) {
-                    throw new IllegalStateException("Seat " + seatRequest.getRowLabel()
-                            + seatRequest.getSeatLabel() + " already exists in venue id: " + venueId);
-                }
-
-                seatsToSave.add(seatMapper.toEntity(seatRequest, venue));
             }
         }
 
-        return seatRepository.saveAll(seatsToSave).stream()
+        // 4️⃣ Save in batch
+        List<Seat> savedSeats = seatRepository.saveAll(seatsToSave);
+
+        // 5️⃣ Map response
+        return savedSeats.stream()
                 .map(seatMapper::toSeatResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @CacheEvict(value = "seats", allEntries = true)
