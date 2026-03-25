@@ -35,6 +35,12 @@ public class SeatController {
         return ResponseEntity.status(HttpStatus.CREATED).body(seatService.createSeat(seatRequest));
     }
 
+    @PostMapping("/bulk")
+    @PreAuthorize("hasAuthority('admin:seats')")
+    public ResponseEntity<List<SeatResponse>> createSeatBulk(@Valid @RequestBody List<SeatRequest> seatRequests) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(seatService.createSeatBulk(seatRequests));
+    }
+
     @PutMapping("/{seatId}")
     @PreAuthorize("hasAuthority('admin:seats')")
     public ResponseEntity<SeatResponse> updateSeat(@PathVariable Long seatId, @Valid @RequestBody SeatRequest seatRequest) {
