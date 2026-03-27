@@ -7,6 +7,7 @@ import com.example.seat_service.repository.BookingRepository;
 import com.example.seat_service.repository.EventSeatStatusRepository;
 import com.example.seat_service.repository.VenueRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import com.example.seat_service.entity.BookingStatus;
 
@@ -24,6 +25,7 @@ public class AdminService {
     private final BookingRepository bookingRepository;
     private final VenueRepository venueRepository;
 
+    @CacheEvict(value = "cities", allEntries = true)
     public AdminStatsResponse getStats() {
         Instant startOfDay = LocalDate.now()
                 .atStartOfDay(ZoneOffset.UTC)

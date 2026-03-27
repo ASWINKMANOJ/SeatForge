@@ -4,6 +4,7 @@ import com.example.seat_service.dto.city.CityRequest;
 import com.example.seat_service.dto.city.CityResponse;
 import com.example.seat_service.entity.City;
 import com.example.seat_service.repository.CityRepository;
+import com.example.seat_service.service.mapper.CityMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,13 +20,14 @@ import java.util.List;
 public class CityService {
 
     private final CityRepository cityRepository;
+    private final CityMapper cityMapper;
 
     @Cacheable(value = "cities", key = "'all'")
     public List<CityResponse> getAllCities() {
         log.info("Cache MISS - fetching all cities from DB");
         return cityRepository.findAll()
                 .stream()
-                .map(CityResponse::new)
+                .map(cityMapper::toResponse)
                 .toList();
     }
 
@@ -34,7 +36,7 @@ public class CityService {
         log.info("Cache MISS - fetching cities by state:{} from DB", state);
         return cityRepository.findAllByStateOrderByNameAsc(state)
                 .stream()
-                .map(CityResponse::new)
+                .map(cityMapper::toResponse)
                 .toList();
     }
 
@@ -43,7 +45,7 @@ public class CityService {
         log.info("Cache MISS - fetching city id:{} from DB", id);
         City city = cityRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("No City with that id:" + id + " is saved in the database"));
-        return new CityResponse(city);
+        return cityMapper.toResponse(city);
     }
 
     @CacheEvict(value = "cities", allEntries = true)
@@ -51,11 +53,9 @@ public class CityService {
         if (cityRepository.existsByNameAndState(cityRequest.getName(), cityRequest.getState())) {
             throw new IllegalStateException("City already exists in this state");
         }
-        City newCity = new City();
-        newCity.setName(cityRequest.getName());
-        newCity.setState(cityRequest.getState());
-        newCity.setCountry(cityRequest.getCountry());
-        return new CityResponse(cityRepository.save(newCity));
+
+        return cityMapper.toResponse(cityRepository.save(cityMapper.toEntity(cityRequest)));
+
     }
 
     @CacheEvict(value = "cities", allEntries = true)
@@ -65,7 +65,9 @@ public class CityService {
         existingCity.setName(cityRequest.getName());
         existingCity.setState(cityRequest.getState());
         existingCity.setCountry(cityRequest.getCountry());
-        return new CityResponse(cityRepository.save(existingCity));
+        existingCity.setImageUrl(cityRequest.getImageUrl());
+        existingCity.setTimezone(cityRequest.getTimeZone());
+        return cityMapper.toResponse(cityRepository.save(existingCity));
     }
 
     @CacheEvict(value = "cities", allEntries = true)

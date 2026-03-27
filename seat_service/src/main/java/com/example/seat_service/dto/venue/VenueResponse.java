@@ -22,6 +22,7 @@ public class VenueResponse implements Serializable {
     private String city;
     private VenueType type;
     private Integer totalCapacity;
+    private String imageUrl;
     private Boolean isActive;
     private Instant createdAt;
 

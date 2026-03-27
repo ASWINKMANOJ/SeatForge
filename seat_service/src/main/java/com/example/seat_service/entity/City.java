@@ -32,5 +32,7 @@ public class City {
     @Column(nullable = false)
     private String country;
 
+    private String imageUrl;
+
     private String timezone;
 }

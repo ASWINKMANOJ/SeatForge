@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
@@ -29,7 +30,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -61,8 +62,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasAuthority("admin:events")
 
                         // user — bookings
-                        .requestMatchers(HttpMethod.POST, "/api/bookings/lock").hasAuthority("write:locks")
-                        .requestMatchers(HttpMethod.DELETE, "/api/bookings/lock").hasAuthority("delete:locks")
+                        .requestMatchers(HttpMethod.POST, "/api/bookings/lock").hasAuthority("write:lock")
+                        .requestMatchers(HttpMethod.DELETE, "/api/bookings/lock").hasAuthority("delete:lock")
                         .requestMatchers(HttpMethod.POST, "/api/bookings").hasAuthority("write:bookings")
                         .requestMatchers(HttpMethod.GET, "/api/bookings/**").hasAuthority("read:bookings")
                         .requestMatchers(HttpMethod.DELETE, "/api/bookings/**").hasAuthority("delete:bookings")

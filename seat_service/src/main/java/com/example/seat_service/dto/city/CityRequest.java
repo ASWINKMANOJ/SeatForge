@@ -15,4 +15,6 @@ public class CityRequest {
     String state;
     @NotBlank(message = "Country name is required")
     String country;
+    String imageUrl;
+    String timeZone;
 }

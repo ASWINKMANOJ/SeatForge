@@ -7,6 +7,8 @@ import com.example.seat_service.dto.booking.BookingSummaryResponse;
 import com.example.seat_service.dto.lock.LockRequest;
 import com.example.seat_service.dto.lock.LockResponse;
 import com.example.seat_service.service.BookingService;
+
+import io.micrometer.common.lang.NonNull;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -60,7 +62,7 @@ public class BookingController {
 
     // GET BOOKING BY ID
     @GetMapping("/{id}")
-    public ResponseEntity<BookingDetailResponse> getBookingById(@PathVariable Long id) {
+    public ResponseEntity<BookingDetailResponse> getBookingById(@PathVariable @NonNull Long id) {
         return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 

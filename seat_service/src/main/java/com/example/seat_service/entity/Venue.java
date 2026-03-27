@@ -40,6 +40,8 @@ public class Venue {
 
     private Integer totalCapacity;
 
+    private String imageUrl;
+
     private Boolean isActive;
 
     private Instant createdAt;

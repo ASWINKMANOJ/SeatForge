@@ -12,6 +12,8 @@ import com.example.seat_service.repository.BookingSeatRepository;
 import com.example.seat_service.repository.EventRepository;
 import com.example.seat_service.repository.EventSeatStatusRepository;
 import com.example.seat_service.service.mapper.BookingMapper;
+
+import io.micrometer.common.lang.NonNull;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -121,7 +123,8 @@ public class BookingService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "seatMap", key = "#request.eventId"),
-            @CacheEvict(value = "events", key = "#request.eventId")
+            @CacheEvict(value = "events", key = "#request.eventId"),
+            @CacheEvict(value = "userBookings", key = "#userId")
     })
     public BookingResponse createBooking(BookingRequest request, String userId) {
         bookingRepository.findByUserIdAndEventIdAndStatus(userId, request.getEventId(), BookingStatus.CONFIRMED)

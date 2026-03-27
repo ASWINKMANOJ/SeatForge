@@ -2,6 +2,10 @@ package com.example.seat_service.entity;
 
 public enum EventCategory {
     MUSIC,
+    THEATER,
+    CONCERT,
     SPORTS,
-    THEATER
+    COMEDY,
+    FESTIVAL,
+    DEFAULT
 }

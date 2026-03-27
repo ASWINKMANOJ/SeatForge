@@ -126,10 +126,13 @@ public class EventService {
         return eventMapper.toDetailResponse(event, availableSeats);
     }
 
-    @Cacheable(value = "eventsAdmin", key = "'admin:status:' + #status")
+    @Cacheable(value = "eventsAdmin", key = "'admin:status:' + (#status != null ? #status : 'ALL')")
     public List<EventAdminResponse> findAllByStatusAdmin(EventStatus status) {
         log.info("Cache MISS - fetching admin events by status:{} from DB", status);
-        return toAdminResponseList(eventRepository.findByStatus(status));
+        List<Event> events = (status == null)
+                ? eventRepository.findAll()
+                : eventRepository.findByStatus(status);
+            return toAdminResponseList(events);
     }
 
     @Cacheable(value = "eventsAdmin", key = "'admin:venue:' + #venueId + ':range:' + #from + ':' + #to")

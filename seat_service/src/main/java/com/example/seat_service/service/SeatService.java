@@ -70,7 +70,6 @@ public class SeatService {
 
     @CacheEvict(value = "seats", allEntries = true)
     public List<SeatResponse> createSeatBulk(SeatBulkCreateRequest request) {
-
         // 1️⃣ Fetch venue once
         Venue venue = venueRepository.findById(request.getVenue_id())
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -79,9 +78,9 @@ public class SeatService {
         // 2️⃣ Get existing seats for this venue
         List<Seat> existingSeats = seatRepository.findAllWithVenue(request.getVenue_id());
 
-        // Build a set for fast lookup
+        // Build a set for fast lookup — now includes section
         Set<String> existingSeatKeys = existingSeats.stream()
-                .map(seat -> seat.getRowLabel() + "_" + seat.getSeatLabel())
+                .map(seat -> seat.getSection() + "_" + seat.getRowLabel() + "_" + seat.getSeatLabel())
                 .collect(Collectors.toSet());
 
         List<Seat> seatsToSave = new ArrayList<>();
@@ -90,9 +89,8 @@ public class SeatService {
         for (String section : request.getSections()) {
             for (String row : request.getRows()) {
                 for (int i = 1; i <= request.getSeatsPerRow(); i++) {
-
                     String seatLabel = String.valueOf(i);
-                    String key = row + "_" + seatLabel;
+                    String key = section + "_" + row + "_" + seatLabel;
 
                     // Skip duplicates
                     if (existingSeatKeys.contains(key)) {
@@ -106,7 +104,6 @@ public class SeatService {
                     seat.setSeatLabel(seatLabel);
                     seat.setSeatType(request.getSeatType());
                     seat.setBasePrice(request.getBasePrice());
-
                     seatsToSave.add(seat);
                 }
             }
