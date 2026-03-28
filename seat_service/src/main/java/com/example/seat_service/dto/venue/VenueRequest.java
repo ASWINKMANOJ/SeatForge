@@ -22,7 +22,7 @@ public class VenueRequest {
     @NotNull(message = "Total capacity is required")
     private Integer totalCapacity;
     @NotNull(message = "Active status is required")
-    private Boolean isActive;
+    private Boolean active;
     @NotNull(message = "Image url is required")
     private String imageUrl;
 }

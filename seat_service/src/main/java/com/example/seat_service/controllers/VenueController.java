@@ -23,14 +23,14 @@ public class VenueController {
     @GetMapping
     public ResponseEntity<List<VenueResponse>> getVenues(
             @RequestParam(required = false) Long cityId,
-            @RequestParam(required = false, defaultValue = "true") Boolean isActive) {
+            @RequestParam(required = false, defaultValue = "true") Boolean active) {
 
-        if (cityId != null && isActive != null) {
-            return ResponseEntity.ok(venueService.findByCityIdAndIsActive(cityId, isActive));
+        if (cityId != null && active != null) {
+            return ResponseEntity.ok(venueService.findByCityIdAndIsActive(cityId, active));
         } else if (cityId != null) {
             return ResponseEntity.ok(venueService.findByCityId(cityId));
-        } else if (isActive != null) {
-            return ResponseEntity.ok(venueService.findByIsActive(isActive));
+        } else if (active != null) {
+            return ResponseEntity.ok(venueService.findByIsActive(active));
         }
         return ResponseEntity.ok(venueService.findAllVenues());
     }

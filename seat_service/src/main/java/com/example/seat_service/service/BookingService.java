@@ -13,7 +13,6 @@ import com.example.seat_service.repository.EventRepository;
 import com.example.seat_service.repository.EventSeatStatusRepository;
 import com.example.seat_service.service.mapper.BookingMapper;
 
-import io.micrometer.common.lang.NonNull;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -209,7 +208,6 @@ public class BookingService {
             throw new IllegalStateException("Only confirmed bookings can be cancelled");
         }
 
-        // get eventId from already fetched booking — no extra DB query
         Long eventId = booking.getEvent().getId();
 
         List<BookingSeat> bookingSeats = bookingSeatRepository.findAllByBookingId(bookingId);
@@ -233,9 +231,11 @@ public class BookingService {
         booking.setCancelledAt(Instant.now());
         Booking saved = bookingRepository.save(booking);
 
-        // manual eviction since eventId comes from fetched entity
-        evictSeatCache(eventId);
+        // FIX: flush to DB immediately so the cache eviction below
+        // happens AFTER the new status is visible to subsequent reads
+        bookingRepository.flush();
 
+        evictSeatCache(eventId);
         checkAndUpdateEventStatus(eventId);
 
         log.info("Booking cancelled - bookingId:{} userId:{} eventId:{}", bookingId, userId, eventId);
@@ -253,12 +253,11 @@ public class BookingService {
 
     @Cacheable(value = "userBookings", key = "#userId")
     public List<BookingSummaryResponse> getBookingsByUser(String userId) {
-        return bookingRepository.findAllByUserId(userId)
+        return bookingRepository.findAllByUserIdWithSeatCount(userId)
                 .stream()
-                .map(booking -> {
-                    int seatCount = bookingSeatRepository.countByBookingId(booking.getId()).intValue();
-                    return bookingMapper.toSummaryResponse(booking, seatCount);
-                })
+                .map(projection -> bookingMapper.toSummaryResponse(
+                        projection.getBooking(),
+                        projection.getSeatCount()))
                 .toList();
     }
 

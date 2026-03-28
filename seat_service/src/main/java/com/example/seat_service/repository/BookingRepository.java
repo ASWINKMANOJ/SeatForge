@@ -36,4 +36,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("userId") String userId,
             @Param("eventId") Long eventId,
             @Param("status") BookingStatus status);
+
+    @Query("""
+        SELECT b AS booking, COUNT(bs) AS seatCount
+        FROM Booking b
+        LEFT JOIN BookingSeat bs ON bs.booking.id = b.id
+        WHERE b.userId = :userId
+        GROUP BY b
+        ORDER BY b.bookedAt DESC
+        """)
+    List<BookingWithSeatCount> findAllByUserIdWithSeatCount(@Param("userId") String userId);
 }

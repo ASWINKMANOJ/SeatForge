@@ -19,7 +19,8 @@ public class CityMapper {
         city.setName(cityRequest.getName());
         city.setState(cityRequest.getState());
         city.setCountry(cityRequest.getCountry());
-
+        city.setImageUrl(cityRequest.getImageUrl());
+        city.setTimezone(cityRequest.getTimeZone());
         return cityRepository.save(city);
     }
 
@@ -29,6 +30,8 @@ public class CityMapper {
         cityResponse.setName(city.getName());
         cityResponse.setState(city.getState());
         cityResponse.setCountry(city.getCountry());
+        cityResponse.setImageUrl(city.getImageUrl());
+        cityResponse.setTimeZone(city.getTimezone());
         return cityResponse;
     }
 }

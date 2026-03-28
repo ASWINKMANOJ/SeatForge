@@ -44,18 +44,18 @@ public class VenueService {
     }
 
     @Cacheable(value = "venues", key = "'active:' + #isActive")
-    public List<VenueResponse> findByIsActive(Boolean isActive) {
-        log.info("Cache MISS - fetching venues by isActive:{} from DB", isActive);
-        return venueRepository.findAllByIsActive(isActive)
+    public List<VenueResponse> findByIsActive(Boolean active) {
+        log.info("Cache MISS - fetching venues by isActive:{} from DB", active);
+        return venueRepository.findAllByIsActive(active)
                 .stream()
                 .map(venueMapper::toResponse)
                 .toList();
     }
 
     @Cacheable(value = "venues", key = "'city:' + #cityId + ':active:' + #isActive")
-    public List<VenueResponse> findByCityIdAndIsActive(Long cityId, Boolean isActive) {
-        log.info("Cache MISS - fetching venues by cityId:{} isActive:{} from DB", cityId, isActive);
-        return venueRepository.findAllByCityIdAndIsActive(cityId, isActive)
+    public List<VenueResponse> findByCityIdAndIsActive(Long cityId, Boolean active) {
+        log.info("Cache MISS - fetching venues by cityId:{} isActive:{} from DB", cityId, active);
+        return venueRepository.findAllByCityIdAndIsActive(cityId, active)
                 .stream()
                 .map(venueMapper::toResponse)
                 .toList();
@@ -94,8 +94,9 @@ public class VenueService {
         existing.setName(request.getName());
         existing.setAddress(request.getAddress());
         existing.setType(request.getVenue_type());
+        existing.setImageUrl(request.getImageUrl());
         existing.setTotalCapacity(request.getTotalCapacity());
-        existing.setIsActive(request.getIsActive());
+        existing.setActive(request.getActive());
 
         return venueMapper.toResponse(venueRepository.save(existing));
     }

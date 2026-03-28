@@ -21,7 +21,7 @@ public class VenueMapper {
                 .type(venue.getType())
                 .totalCapacity(venue.getTotalCapacity())
                 .imageUrl(venue.getImageUrl())
-                .isActive(venue.getIsActive())
+                .active(venue.getActive())
                 .createdAt(venue.getCreatedAt())
                 .build();
     }
@@ -34,7 +34,7 @@ public class VenueMapper {
         venue.setType(request.getVenue_type());
         venue.setTotalCapacity(request.getTotalCapacity());
         venue.setImageUrl(request.getImageUrl());
-        venue.setIsActive(request.getIsActive());
+        venue.setActive(request.getActive());
         venue.setCreatedAt(Instant.now());
         return venue;
     }
